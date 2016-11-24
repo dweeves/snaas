@@ -95,8 +95,8 @@ variable "pg_password" {
 
 variable "version" {
   default = {
-    "gateway-http" = "umake-102"
-    "sims"         = "umake-102"
+    "gateway-http" = "umake-108"
+    "sims"         = "umake-108"
   }
 
   description = "Versions used for deployed services"
