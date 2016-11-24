@@ -799,7 +799,7 @@ func main() {
 		handler.Wrap(
 			withApp,
 			handler.UserCreate(
-				core.UserCreate(sessions, users),
+				core.UserCreate(connections, sessions, users),
 			),
 		),
 	)

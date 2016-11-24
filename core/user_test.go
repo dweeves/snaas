@@ -14,11 +14,12 @@ import (
 
 func TestUserCreateConstrainPrivate(t *testing.T) {
 	var (
-		app      = testSetupUser()
-		origin   = Origin{Integration: IntegrationApplication}
-		sessions = session.MemService()
-		users    = user.MemService()
-		fn       = UserCreate(sessions, users)
+		app         = testSetupUser()
+		origin      = Origin{Integration: IntegrationApplication}
+		connections = connection.MemService()
+		sessions    = session.MemService()
+		users       = user.MemService()
+		fn          = UserCreate(connections, sessions, users)
 	)
 
 	u := testUser()

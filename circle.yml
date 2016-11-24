@@ -21,7 +21,7 @@ test:
     - ./infrastructure/scripts/execute-tests
 deployment:
   docker:
-    branch: master
+    branch: umake
     commands:
       - ./infrastructure/scripts/build-container
       - docker login -e ${DOCKERHUB_EMAIL} -p ${DOCKERHUB_PASSWORD} -u ${DOCKERHUB_USERNAME}

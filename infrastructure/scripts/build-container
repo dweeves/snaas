@@ -34,7 +34,7 @@ docker run \
 echo "|> build container"
 docker build \
 	-f ${PROJECT}/infrastructure/docker/snaas.docker \
-    -t tapglue/snaas:${CIRCLE_BUILD_NUM} \
+    -t tapglue/snaas:umake-${CIRCLE_BUILD_NUM} \
     --build-arg GATEWAY_HTTP_BINARY=gateway-http_${CIRCLE_BUILD_NUM} \
     --build-arg SIMS_BINARY=sims_${CIRCLE_BUILD_NUM} \
     ${PROJECT}

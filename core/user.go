@@ -22,6 +22,7 @@ type UserCreateFunc func(
 
 // UserCreate stores the provided user and creates a session.
 func UserCreate(
+	connections connection.Service,
 	sessions session.Service,
 	users user.Service,
 ) UserCreateFunc {
@@ -43,11 +44,18 @@ func UserCreate(
 			return nil, err
 		}
 
+		b := &user.User{}
+
+		*b = *u
+
 		u.Enabled = true
 		u.Password = epw
 
 		u, err = users.Put(currentApp.Namespace(), u)
 		if err != nil {
+			if user.IsNotUnique(err) {
+				return UserLogin(connections, sessions, users)(currentApp, origin, b.Email, b.Username, b.Password)
+			}
 			return nil, err
 		}
 
