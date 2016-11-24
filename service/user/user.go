@@ -133,9 +133,9 @@ func (u *User) Validate() error {
 		return wrapError(ErrInvalidUser, "email or username must be set")
 	}
 
-	if ok := govalidator.IsEmail(u.Email); u.Email != "" && !ok {
-		return wrapError(ErrInvalidUser, "invalid email address '%s'", u.Email)
-	}
+	// if ok := govalidator.IsEmail(u.Email); u.Email != "" && !ok {
+	// 	return wrapError(ErrInvalidUser, "invalid email address '%s'", u.Email)
+	// }
 
 	if u.Firstname != "" {
 		if len(u.Firstname) < 1 {
