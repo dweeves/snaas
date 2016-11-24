@@ -44,7 +44,7 @@ resource "aws_subnet" "perimeter-a" {
 }
 
 resource "aws_subnet" "perimeter-b" {
-  availability_zone       = "${var.region}b"
+  availability_zone       = "${var.region}c"
   cidr_block              = "10.0.8.0/23"
   map_public_ip_on_launch = true
   vpc_id                  = "${aws_vpc.env.id}"
@@ -88,7 +88,7 @@ resource "aws_subnet" "platform-a" {
 }
 
 resource "aws_subnet" "platform-b" {
-  availability_zone       = "${var.region}b"
+  availability_zone       = "${var.region}c"
   cidr_block              = "10.0.10.0/23"
   vpc_id                  = "${aws_vpc.env.id}"
 
@@ -122,7 +122,7 @@ resource "aws_route_table_association" "platform-b" {
 
 resource "aws_instance" "bastion" {
   ami                     = "${var.ami_minimal["${var.region}"]}"
-  instance_type           = "t2.medium"
+  instance_type           = "m4.large"
   key_name                = "${aws_key_pair.access.key_name}"
   vpc_security_group_ids  = [
     "${aws_security_group.perimeter.id}",

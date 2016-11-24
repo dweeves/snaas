@@ -1,6 +1,6 @@
 resource "aws_instance" "monitoring" {
   ami             = "${var.ami_minimal["${var.region}"]}"
-  instance_type   = "t2.medium"
+  instance_type   = "m4.large"
   key_name        = "${aws_key_pair.access.key_name}"
   vpc_security_group_ids = [
     "${aws_security_group.platform.id}",
