@@ -759,6 +759,23 @@ func main() {
 		),
 	)
 
+	current.Methods("POST").Path("/users/login").Name("userLogin").HandlerFunc(
+		handler.Wrap(
+			withApp,
+			handler.UserLogin(
+				core.UserLogin(connections, sessions, users),
+			),
+		),
+	)
+
+	current.Methods("DELETE").Path("/users/logout").Name("userLogout").HandlerFunc(
+		handler.Wrap(
+			withUser,
+			handler.UserLogout(
+				core.UserLogout(sessions),
+			),
+		),
+	)
 	current.Methods("GET").Path("/users/{userID:[0-9]+}").Name("userRetrieve").HandlerFunc(
 		handler.Wrap(
 			withUser,
