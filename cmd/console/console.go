@@ -146,7 +146,7 @@ func main() {
 		handler.Wrap(
 			withConstraints,
 			func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-				http.StripPrefix("/", http.FileServer(http.Dir("cmd/console/"))).ServeHTTP(w, r)
+				http.StripPrefix("/", http.FileServer(http.Dir("."))).ServeHTTP(w, r)
 			},
 		),
 	)
