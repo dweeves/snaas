@@ -10,7 +10,6 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/jmoiron/sqlx"
 	"github.com/prometheus/client_golang/prometheus"
-	"golang.org/x/net/context"
 
 	"github.com/tapglue/snaas/core"
 	handler "github.com/tapglue/snaas/handler/http"
@@ -142,13 +141,22 @@ func main() {
 		),
 	)
 
+	router.Methods("GET").PathPrefix("/fonts").Name("fonts").Handler(
+		http.StripPrefix("/fonts", http.FileServer(http.Dir("./fonts"))),
+	)
+
+	router.Methods("GET").PathPrefix("/scripts").Name("scripts").Handler(
+		http.StripPrefix("/scripts", http.FileServer(http.Dir("./scripts"))),
+	)
+
+	router.Methods("GET").PathPrefix("/styles").Name("styles").Handler(
+		http.StripPrefix("/styles", http.FileServer(http.Dir("./styles"))),
+	)
+
 	router.Methods("GET").PathPrefix("/").Name("root").HandlerFunc(
-		handler.Wrap(
-			withConstraints,
-			func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-				http.StripPrefix("/", http.FileServer(http.Dir("."))).ServeHTTP(w, r)
-			},
-		),
+		func(w http.ResponseWriter, r *http.Request) {
+			http.ServeFile(w, r, "index.html")
+		},
 	)
 
 	// Setup server.

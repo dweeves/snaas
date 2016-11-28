@@ -4,6 +4,10 @@
 	line-height: 100%;
 }
 
+a {
+	text-decoration: none;
+}
+
 body, html {
 	background: #f5f5f5;
 	font-size: 62.5%;
@@ -74,7 +78,7 @@ h2 {
 	font-weight: 500;
 }
 
-h2 div {
+h2 a, h2 div {
 	color: rgb(63,91,96);
 }
 
@@ -129,12 +133,9 @@ table thead {
 
 table thead tr th {
 	font-weight: 300;
+	padding: 0 0.4rem;
 	text-align: left;
 	text-transform: capitalize;
-}
-
-table thead tr th.status {
-	width: 8rem;
 }
 
 table tbody {
@@ -143,17 +144,17 @@ table tbody {
 
 table tbody tr {
 	border-bottom: 0.1rem solid #efefef;
+	cursor: pointer;
 }
 
 table tbody tr td {
-	padding: 1rem 0 0.8rem 0;
+	padding: 1rem 0.8rem 0.8rem 0.4rem;
 }
 
 table tbody tr td.status {
-	display: block;
+	text-align: center;
 }
 
 table tbody tr td.status div {
-	display: block;
 	margin: 0 auto;
 }
