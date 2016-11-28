@@ -2,6 +2,8 @@ package main
 
 import (
 	"flag"
+	"fmt"
+	"html/template"
 	"net/http"
 	"os"
 	"time"
@@ -38,12 +40,34 @@ var (
 	revision = "0000000-dev"
 )
 
+// Templates.
+var (
+	tmplIndex = `<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <link href="https://fonts.googleapis.com/css?family=Fira+Sans:300,300i,400,500,700" rel="stylesheet">
+    <link href="/styles/normalize.css" rel="stylesheet">
+    <link href="/styles/nucleo-glyph.css" rel="stylesheet">
+    <link href="/styles/console.css" rel="stylesheet">
+    <script src="/scripts/console.js" type="text/javascript"></script>
+  </head>
+  <body>
+    <script type="text/javascript">
+      Elm.Console.fullscreen({zone: "{{.Zone}}"});
+    </script>
+ </body>
+</html>tmplIndex =`
+)
+
 func main() {
 	var (
 		begin = time.Now()
 
+		env           = flag.String("env", "dev", "Environment used for isolation.")
 		listenAddr    = flag.String("listen.adrr", ":8084", "HTTP bind address for main API")
 		postgresURL   = flag.String("postgres.url", "", "Postgres URL to connect to")
+		region        = flag.String("region", "local", "AWS region of the current deployment.")
 		telemetryAddr = flag.String("telemetry.addr", ":9002", "HTTP bind address where telemetry is exposed")
 	)
 	flag.Parse()
@@ -124,6 +148,9 @@ func main() {
 		)
 	)
 
+	// Setup templates.
+	tplRoot, err := template.New("root").Parse(tmplIndex)
+
 	// Setup Router.
 	router := mux.NewRouter()
 
@@ -155,7 +182,11 @@ func main() {
 
 	router.Methods("GET").PathPrefix("/").Name("root").HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
-			http.ServeFile(w, r, "index.html")
+			tplRoot.Execute(w, struct {
+				Zone string
+			}{
+				Zone: fmt.Sprintf("%s-%s", *env, *region),
+			})
 		},
 	)
 

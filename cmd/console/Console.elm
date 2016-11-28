@@ -9,9 +9,9 @@ import Json.Encode as Encode
 import Navigation
 import UrlParser as Url exposing ((</>), (<?>), s, int, stringParam, top)
 
-main : Program Never Model Msg
+main : Program Flags Model Msg
 main =
-    Navigation.program UrlChange
+    Navigation.programWithFlags UrlChange
         { init = init
         , subscriptions = subscriptions
         , update = update
@@ -29,18 +29,27 @@ type alias App =
     , token : String
     }
 
+type alias Flags =
+    { zone : String
+    }
+
 type alias Model =
     { apps : List App
     , debug : Bool
     , description : String
     , name : String
+    , zone : String
     }
+
+type Page
+    = NotFound
+    | AppList
 
 type alias Tag = List (Html Msg) -> Html Msg
 
-init : Navigation.Location -> (Model, Cmd Msg)
-init location =
-    (Model [] (isDebug location) "" "", getApps)
+init : Flags -> Navigation.Location -> (Model, Cmd Msg)
+init {zone} location =
+    (Model [] (isDebug location) "" "" zone, getApps)
 
 -- UPDATE
 
@@ -83,11 +92,14 @@ subscriptions model =
 view : Model -> Html Msg
 view model =
     div [ class "content" ]
-        [ viewContainer (header []) [ viewHeader ]
+        [ viewContainer (header [])
+            [ viewHeader
+            , nav [] [ span [] [ text model.zone ] ]
+            ]
         , viewContainer (section [])
             [ h2 []
                 [ div [ class "icon nc-icon-glyph ui-2_layers" ] []
-                , div [] [ text "Apps" ]
+                , a [ href "/apps" ] [ text "Apps" ]
                 ]
             ]
         , viewContainer (section [ class "highlight" ])
@@ -105,7 +117,7 @@ viewApps apps =
         table []
             [ thead []
                 [ tr []
-                    [ th [ class "status" ] [ text "enabled" ]
+                    [ th [ class "status" ] [ text "status" ]
                     , th [] [ text "name" ]
                     , th [] [ text "description" ]
                     , th [] [ text "token" ]
