@@ -1,8 +1,8 @@
 module Console exposing (..)
 
 import Html exposing (..)
-import Html.Attributes exposing (class, href, placeholder, type_, value)
-import Html.Events exposing (onInput, onSubmit)
+import Html.Attributes exposing (class, href, placeholder, title, type_, value)
+import Html.Events exposing (onClick, onInput, onSubmit)
 import Http
 import Json.Decode as Decode
 import Json.Encode as Encode
@@ -38,18 +38,19 @@ type alias Model =
     , debug : Bool
     , description : String
     , name : String
+    , route : (Maybe Route)
     , zone : String
     }
 
-type Page
-    = NotFound
-    | AppList
+type Route
+    = AppList
+    | Home
 
 type alias Tag = List (Html Msg) -> Html Msg
 
 init : Flags -> Navigation.Location -> (Model, Cmd Msg)
 init {zone} location =
-    (Model [] (isDebug location) "" "" zone, getApps)
+    (Model [] (isDebug location) "" "" (Url.parsePath route location) zone, getApps)
 
 -- UPDATE
 
@@ -57,6 +58,7 @@ type Msg
     = Apps (Result Http.Error (List App))
     | Description String
     | Name String
+    | Navigate String
     | NewApp (Result Http.Error App)
     | Submit
     | UrlChange Navigation.Location
@@ -72,6 +74,8 @@ update msg model =
             ( { model | description = description }, Cmd.none)
         Name name ->
             ( { model | name = name }, Cmd.none)
+        Navigate path ->
+            (model, Navigation.newUrl path)
         NewApp (Ok app) ->
             ( { model | apps = model.apps ++ [ app ], description = "", name = "" }, Cmd.none)
         NewApp (Err _) ->
@@ -79,7 +83,7 @@ update msg model =
         Submit ->
             (model, createApp model.name model.description)
         UrlChange location ->
-            ( { model | debug = isDebug location }, Cmd.none)
+            ( { model | debug = isDebug location, route = (Url.parsePath route location) }, Cmd.none )
 
 -- SUBSCRIPTION
 
@@ -91,23 +95,34 @@ subscriptions model =
 
 view : Model -> Html Msg
 view model =
-    div [ class "content" ]
-        [ viewContainer (header [])
-            [ viewHeader
-            , nav [] [ span [] [ text model.zone ] ]
-            ]
-        , viewContainer (section [])
-            [ h2 []
-                [ div [ class "icon nc-icon-glyph ui-2_layers" ] []
-                , a [ href "/apps" ] [ text "Apps" ]
+    let
+        content = case model.route of
+            Nothing ->
+                [ h3 []
+                    [ text "Looks like we couldn't find the page you were looking for."
+                    ]
                 ]
+            Just AppList ->
+                [ viewApps model.apps
+                , viewForm model
+                ]
+            Just Home ->
+                [ h3 [] [ text "You are home now." ] ]
+    in
+        div [ class "content" ]
+            [ viewContainer (header [])
+                [ viewHeader
+                , nav [] [ span [] [ text model.zone ] ]
+                ]
+            , viewContainer (section [])
+                [ h2 []
+                    [ div [ class "icon nc-icon-glyph ui-2_layers" ] []
+                    , a [ href "/apps" ] [ text "Apps" ]
+                    ]
+                ]
+            , viewContainer (section [ class "highlight" ]) content
+            , viewContainer (footer []) [ viewDebug model ]
             ]
-        , viewContainer (section [ class "highlight" ])
-            [ viewApps model.apps
-            , viewForm model
-            ]
-        , viewContainer (footer []) [ viewDebug model ]
-        ]
 
 viewApps : List App -> Html Msg
 viewApps apps =
@@ -121,7 +136,6 @@ viewApps apps =
                     , th [] [ text "name" ]
                     , th [] [ text "description" ]
                     , th [] [ text "token" ]
-                    , th [] [ text "backend token" ]
                     ]
                 ]
             , tbody [] (List.map viewAppItem apps)
@@ -140,7 +154,6 @@ viewAppItem app =
             , td [] [ text app.name ]
             , td [] [ text app.description ]
             , td [] [ text app.token ]
-            , td [] [ text app.backend_token ]
             ]
 
 viewContainer : Tag -> List (Html Msg) -> Html Msg
@@ -162,7 +175,7 @@ viewDebug model =
 viewHeader : Html Msg
 viewHeader =
     h1 []
-        [ a [ href "/" ]
+        [ a [ onClick (Navigate "/"), title "Home" ]
             [ strong [] [ text "SocialPath" ]
             , span [] [ text "Console" ]
             ]
@@ -205,6 +218,15 @@ decodeApp =
         (Decode.field "enabled" Decode.bool)
         (Decode.field "name" Decode.string)
         (Decode.field "token" Decode.string)
+
+-- ROUTING
+
+route : Url.Parser (Route -> a) a
+route =
+    Url.oneOf
+        [ Url.map AppList (Url.s "apps")
+        , Url.map Home (Url.s "")
+        ]
 
 isDebug : Navigation.Location -> Bool
 isDebug location =

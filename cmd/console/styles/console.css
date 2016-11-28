@@ -5,6 +5,7 @@
 }
 
 a {
+	cursor: pointer;
 	text-decoration: none;
 }
 
@@ -73,8 +74,10 @@ h1 span {
 h2 {
 	color: rgb(63,91,96);
 	display: flex;
-	font-size: 5rem;
+	font-size: 4rem;
 	font-weight: 500;
+	margin: 0;
+	padding: 0rem 0rem 1.4rem 0rem;
 }
 
 h2 a, h2 div {
@@ -86,19 +89,13 @@ h2 div.icon {
 }
 
 h3 {
-	font-weight: 400;
-	font-size: 4.6rem;
-	font-style: italic;
-}
-
-h3 {
 	font-weight: 300;
 	font-size: 3.2rem;
 	font-style: italic;
 }
 
 header {
-	padding: 4rem 0 6rem 0;
+	padding: 4rem 0 4rem 0;
 }
 
 header div.container {
@@ -158,11 +155,12 @@ table tbody tr {
 }
 
 table tbody tr td {
-	padding: 1rem 0.8rem 0.8rem 0.4rem;
+	padding: 1.4rem 0.8rem 0.8rem 0.4rem;
 }
 
 table tbody tr td.status {
 	text-align: center;
+	width: 5rem;
 }
 
 table tbody tr td.status div {

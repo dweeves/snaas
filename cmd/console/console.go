@@ -57,7 +57,7 @@ var (
       Elm.Console.fullscreen({zone: "{{.Zone}}"});
     </script>
  </body>
-</html>tmplIndex =`
+</html>`
 )
 
 func main() {
