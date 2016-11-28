@@ -56,6 +56,16 @@ func AppFetch(apps app.Service) AppFetchFunc {
 	}
 }
 
+// AppListFunc returns all Apps.
+type AppListFunc func() (app.List, error)
+
+// AppList returns all apps.
+func AppList(apps app.Service) AppListFunc {
+	return func() (app.List, error) {
+		return apps.Query(app.NamespaceDefault, app.QueryOptions{})
+	}
+}
+
 func generateTokens() (string, string, error) {
 	src := rand.NewSource(time.Now().UnixNano())
 
