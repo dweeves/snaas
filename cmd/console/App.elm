@@ -6,6 +6,8 @@ import Html.Events exposing (onClick, onInput, onSubmit)
 import Http
 import Json.Decode as Decode
 import Json.Encode as Encode
+import Navigation
+
 import Route
 
 -- MODEL
@@ -23,6 +25,7 @@ type alias Model =
     { apps : List App
     , description : String
     , name : String
+    , selected : (Maybe App)
     }
 
 init : (Model, Cmd Msg)
@@ -31,7 +34,7 @@ init =
 
 initModel : Model
 initModel =
-    Model [] "" ""
+    Model [] "" "" Nothing
 
 -- UPDATE
 
@@ -40,6 +43,7 @@ type Msg
     | Description String
     | Name String
     | New (Result Http.Error App)
+    | Select String
     | Submit
 
 update : Msg -> Model -> (Model, Cmd Msg)
@@ -57,6 +61,8 @@ update msg model =
             ({ model | apps = model.apps ++ [ app ], description = "", name = "" }, Cmd.none)
         New (Err _) ->
             (model, Cmd.none)
+        Select id ->
+            ({ model | selected = (selectApp id model.apps) }, Navigation.newUrl (Route.construct (Route.App id)))
         Submit ->
             (model, create model.name model.description)
 
@@ -97,9 +103,8 @@ viewItem app =
             else
                 span [ class "nc-icon-glyph ui-1_circle-remove" ] []
     in
-        tr []
+        tr [ onClick (Select app.id) ]
             [ td [ class "status" ] [ enabled ]
-            , td [] [ text app.id ]
             , td [] [ text app.name ]
             , td [] [ text app.description ]
             , td [] [ text app.token ]
@@ -114,7 +119,6 @@ viewList apps =
             [ thead []
                 [ tr []
                     [ th [ class "status" ] [ text "status" ]
-                    , th [] [ text "id" ]
                     , th [] [ text "name" ]
                     , th [] [ text "description" ]
                     , th [] [ text "token" ]
@@ -151,3 +155,9 @@ encode name description =
 getList : Cmd Msg
 getList =
     Http.send AppList (Http.get "/api/apps" decodeList)
+
+selectApp : String -> List App -> Maybe App
+selectApp id apps =
+    apps
+    |> List.filter (\app -> app.id == id)
+    |> List.head

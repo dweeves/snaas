@@ -1,16 +1,17 @@
 module Console exposing (..)
 
 import Html exposing (..)
-import Html.Attributes exposing (class, href, placeholder, title, type_, value)
+import Html.Attributes exposing (class, href, id, placeholder, title, type_, value)
 import Html.Events exposing (onClick, onInput, onSubmit)
 import Navigation
 import UrlParser as Url exposing ((</>), (<?>), s, int, stringParam, top)
 
 import App
+import Route
 
 main : Program Flags Model Msg
 main =
-    Navigation.programWithFlags UrlChange
+    Navigation.programWithFlags LocationChange
         { init = init
         , subscriptions = subscriptions
         , update = update
@@ -27,35 +28,38 @@ type alias Flags =
 type alias Model =
     { appModel : App.Model
     , debug : Bool
-    , route : (Maybe Route)
+    , route : (Maybe Route.Route)
     , zone : String
     }
 
 type alias Tag = List (Html Msg) -> Html Msg
 
-type Route
-    = Apps
-    | Home
-
 init : Flags -> Navigation.Location -> (Model, Cmd Msg)
 init {zone} location =
-    case (Url.parsePath route location) of
-        Nothing ->
-            (Model App.initModel (isDebug location) (Url.parsePath route location) zone, Cmd.none)
-        Just Apps ->
-            let
-                (appModel, appCmd) = App.init
-            in
-                (Model appModel (isDebug location) (Url.parsePath route location) zone, Cmd.map AppMsg appCmd)
-        Just Home ->
-            (Model App.initModel (isDebug location) (Url.parsePath route location) zone, Cmd.none)
+    let
+        route = Route.parse location
+    in
+        case route of
+            Nothing ->
+                (Model App.initModel (isDebug location) route zone, Cmd.none)
+            Just (Route.App id) ->
+                (Model App.initModel (isDebug location) route zone, Cmd.none)
+            Just Route.Apps ->
+                let
+                    (appModel, appCmd) = App.init
+                in
+                    (Model appModel (isDebug location) route zone, Cmd.map AppMsg appCmd)
+            Just Route.Home ->
+                (Model App.initModel (isDebug location) route zone, Cmd.none)
 
 -- UPDATE
 
 type Msg
     = AppMsg App.Msg
-    | Navigate String
-    | UrlChange Navigation.Location
+    | LocationChange Navigation.Location
+    | NavigateApp String
+    | NavigateApps
+    | NavigateHome
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
@@ -65,19 +69,24 @@ update msg model =
                 (appModel, appCmd) = App.update appMsg model.appModel
             in
                 ({ model | appModel = appModel }, Cmd.map AppMsg appCmd)
-        Navigate path ->
-            (model, Navigation.newUrl path)
-        UrlChange location ->
+        LocationChange location ->
             let
-                newRoute = Url.parsePath route location
+                newRoute = Route.parse location
             in
-                if newRoute == Just Apps then
+                if newRoute == Just Route.Apps then
                     let
                         (appModel, appCmd) = App.init
                     in
                         ({ model | appModel = appModel, route = newRoute }, Cmd.map AppMsg appCmd)
                 else
                     ({ model | route = newRoute }, Cmd.none)
+        NavigateApp id ->
+            (model, Navigation.newUrl (Route.construct (Route.App id)))
+        NavigateApps ->
+            (model, Navigation.newUrl (Route.construct Route.Apps))
+        NavigateHome ->
+            (model, Navigation.newUrl (Route.construct Route.Home))
+
 
 -- SUBSCRIPTION
 
@@ -93,9 +102,11 @@ view model =
         content = case model.route of
             Nothing ->
                 h3 [] [ text "Looks like we couldn't find the page you were looking for." ]
-            Just Apps ->
+            Just (Route.App id) ->
+                h3 [] [ text ("App single view for " ++ id) ]
+            Just Route.Apps ->
                 Html.map AppMsg (App.view model.appModel)
-            Just Home ->
+            Just Route.Home ->
                 h3 [] [ text "You are home now." ]
     in
         div [ class "content" ]
@@ -103,17 +114,39 @@ view model =
                 [ viewHeader
                 , nav [] [ span [] [ text model.zone ] ]
                 ]
-            , viewContainer (section [])
-                [ h2 []
-                    [ a [ onClick (Navigate "/apps"), title "Apps" ]
-                        [ span [ class "icon nc-icon-glyph ui-2_layers" ] []
-                        , span [] [ text "Apps" ]
-                        ]
-                    ]
-                ]
+            , viewContext model
             , viewContainer (section [ class "highlight" ]) [ content ]
             , viewContainer (footer []) [ viewDebug model ]
             ]
+
+viewContext : Model -> Html Msg
+viewContext model =
+    let
+        (sectionClass, info) =
+            case model.appModel.selected of
+                Nothing ->
+                    ("", span [] [])
+                Just app ->
+                    ("selected", viewAppSelected app)
+
+    in
+        viewContainer (section [ class sectionClass, id "context" ])
+            [ h2 []
+                [ a [ onClick NavigateApps, title "Apps" ]
+                    [ span [ class "icon nc-icon-glyph ui-2_layers" ] []
+                    , span [] [ text "Apps" ]
+                    ]
+                ]
+            , info
+            ]
+
+viewAppSelected : App.App -> Html Msg
+viewAppSelected app =
+    nav []
+        [ a [ onClick (NavigateApp app.id), title app.name ]
+            [ span [] [ text app.name ]
+            ]
+        ]
 
 viewContainer : Tag -> List (Html Msg) -> Html Msg
 viewContainer elem content =
@@ -134,20 +167,13 @@ viewDebug model =
 viewHeader : Html Msg
 viewHeader =
     h1 []
-        [ a [ onClick (Navigate "/"), title "Home" ]
+        [ a [ onClick NavigateHome, title "Home" ]
             [ strong [] [ text "SocialPath" ]
             , span [] [ text "Console" ]
             ]
         ]
 
 -- ROUTING
-
-route : Url.Parser (Route -> a) a
-route =
-    Url.oneOf
-        [ Url.map Apps (Url.s "apps")
-        , Url.map Home (Url.s "")
-        ]
 
 isDebug : Navigation.Location -> Bool
 isDebug location =
