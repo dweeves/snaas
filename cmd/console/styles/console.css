@@ -80,11 +80,11 @@ h2 {
 	padding: 0rem 0rem 1.4rem 0rem;
 }
 
-h2 a, h2 div {
+h2 a, h2 span {
 	color: rgb(63,91,96);
 }
 
-h2 div.icon {
+h2 span.icon {
 	margin-right: 0.8rem;
 }
 

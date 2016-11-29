@@ -3,11 +3,10 @@ module Console exposing (..)
 import Html exposing (..)
 import Html.Attributes exposing (class, href, placeholder, title, type_, value)
 import Html.Events exposing (onClick, onInput, onSubmit)
-import Http
-import Json.Decode as Decode
-import Json.Encode as Encode
 import Navigation
 import UrlParser as Url exposing ((</>), (<?>), s, int, stringParam, top)
+
+import App
 
 main : Program Flags Model Msg
 main =
@@ -21,69 +20,64 @@ main =
 
 -- MODEL
 
-type alias App =
-    { backend_token : String
-    , description : String
-    , enabled : Bool
-    , name : String
-    , token : String
-    }
-
 type alias Flags =
     { zone : String
     }
 
 type alias Model =
-    { apps : List App
+    { appModel : App.Model
     , debug : Bool
-    , description : String
-    , name : String
     , route : (Maybe Route)
     , zone : String
     }
 
-type Route
-    = AppList
-    | Home
-
 type alias Tag = List (Html Msg) -> Html Msg
+
+type Route
+    = Apps
+    | Home
 
 init : Flags -> Navigation.Location -> (Model, Cmd Msg)
 init {zone} location =
-    (Model [] (isDebug location) "" "" (Url.parsePath route location) zone, getApps)
+    case (Url.parsePath route location) of
+        Nothing ->
+            (Model App.initModel (isDebug location) (Url.parsePath route location) zone, Cmd.none)
+        Just Apps ->
+            let
+                (appModel, appCmd) = App.init
+            in
+                (Model appModel (isDebug location) (Url.parsePath route location) zone, Cmd.map AppMsg appCmd)
+        Just Home ->
+            (Model App.initModel (isDebug location) (Url.parsePath route location) zone, Cmd.none)
 
 -- UPDATE
 
 type Msg
-    = Apps (Result Http.Error (List App))
-    | Description String
-    | Name String
+    = AppMsg App.Msg
     | Navigate String
-    | NewApp (Result Http.Error App)
-    | Submit
     | UrlChange Navigation.Location
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
     case msg of
-        Apps (Ok apps) ->
-            ({ model | apps = apps }, Cmd.none)
-        Apps (Err _) ->
-            (model, Cmd.none)
-        Description description ->
-            ( { model | description = description }, Cmd.none)
-        Name name ->
-            ( { model | name = name }, Cmd.none)
+        AppMsg appMsg ->
+            let
+                (appModel, appCmd) = App.update appMsg model.appModel
+            in
+                ({ model | appModel = appModel }, Cmd.map AppMsg appCmd)
         Navigate path ->
             (model, Navigation.newUrl path)
-        NewApp (Ok app) ->
-            ( { model | apps = model.apps ++ [ app ], description = "", name = "" }, Cmd.none)
-        NewApp (Err _) ->
-            (model, Cmd.none)
-        Submit ->
-            (model, createApp model.name model.description)
         UrlChange location ->
-            ( { model | debug = isDebug location, route = (Url.parsePath route location) }, Cmd.none )
+            let
+                newRoute = Url.parsePath route location
+            in
+                if newRoute == Just Apps then
+                    let
+                        (appModel, appCmd) = App.init
+                    in
+                        ({ model | appModel = appModel, route = newRoute }, Cmd.map AppMsg appCmd)
+                else
+                    ({ model | route = newRoute }, Cmd.none)
 
 -- SUBSCRIPTION
 
@@ -98,16 +92,11 @@ view model =
     let
         content = case model.route of
             Nothing ->
-                [ h3 []
-                    [ text "Looks like we couldn't find the page you were looking for."
-                    ]
-                ]
-            Just AppList ->
-                [ viewApps model.apps
-                , viewForm model
-                ]
+                h3 [] [ text "Looks like we couldn't find the page you were looking for." ]
+            Just Apps ->
+                Html.map AppMsg (App.view model.appModel)
             Just Home ->
-                [ h3 [] [ text "You are home now." ] ]
+                h3 [] [ text "You are home now." ]
     in
         div [ class "content" ]
             [ viewContainer (header [])
@@ -116,44 +105,14 @@ view model =
                 ]
             , viewContainer (section [])
                 [ h2 []
-                    [ div [ class "icon nc-icon-glyph ui-2_layers" ] []
-                    , a [ href "/apps" ] [ text "Apps" ]
+                    [ a [ onClick (Navigate "/apps"), title "Apps" ]
+                        [ span [ class "icon nc-icon-glyph ui-2_layers" ] []
+                        , span [] [ text "Apps" ]
+                        ]
                     ]
                 ]
-            , viewContainer (section [ class "highlight" ]) content
+            , viewContainer (section [ class "highlight" ]) [ content ]
             , viewContainer (footer []) [ viewDebug model ]
-            ]
-
-viewApps : List App -> Html Msg
-viewApps apps =
-    if List.length apps == 0 then
-        h3 [] [ text "Looks like you haven't created an App yet." ]
-    else
-        table []
-            [ thead []
-                [ tr []
-                    [ th [ class "status" ] [ text "status" ]
-                    , th [] [ text "name" ]
-                    , th [] [ text "description" ]
-                    , th [] [ text "token" ]
-                    ]
-                ]
-            , tbody [] (List.map viewAppItem apps)
-            ]
-
-viewAppItem : App -> Html Msg
-viewAppItem app =
-    let
-        enabled = if app.enabled then
-                span [ class "nc-icon-glyph ui-1_check-circle-07" ] []
-            else
-                span [ class "nc-icon-glyph ui-1_circle-remove" ] []
-    in
-        tr []
-            [ td [ class "status" ] [ enabled ]
-            , td [] [ text app.name ]
-            , td [] [ text app.description ]
-            , td [] [ text app.token ]
             ]
 
 viewContainer : Tag -> List (Html Msg) -> Html Msg
@@ -181,50 +140,12 @@ viewHeader =
             ]
         ]
 
-viewForm : Model -> Html Msg
-viewForm model =
-    form [ onSubmit Submit ]
-        [ input [ type_ "text", placeholder "Name", onInput Name, value model.name ] []
-        , input
-            [ class "description"
-            , type_ "text"
-            , placeholder "Description"
-            , onInput Description
-            , value model.description
-            ] []
-        , button [ type_ "submit" ] [ text "Create" ]
-        ]
-
--- HTTP
-
-createApp : String -> String -> Cmd Msg
-createApp name description =
-    Http.post "/api/apps" (Http.jsonBody (Encode.object [ ("name", Encode.string name), ("description", Encode.string description) ] )) decodeApp
-        |> Http.send NewApp
-
-getApps : Cmd Msg
-getApps =
-    Http.send Apps (Http.get "/api/apps" decodeApps)
-
-decodeApps : Decode.Decoder (List App)
-decodeApps =
-    Decode.at [ "apps" ] (Decode.list decodeApp)
-
-decodeApp : Decode.Decoder App
-decodeApp =
-    Decode.map5 App
-        (Decode.field "backend_token" Decode.string)
-        (Decode.field "description" Decode.string)
-        (Decode.field "enabled" Decode.bool)
-        (Decode.field "name" Decode.string)
-        (Decode.field "token" Decode.string)
-
 -- ROUTING
 
 route : Url.Parser (Route -> a) a
 route =
     Url.oneOf
-        [ Url.map AppList (Url.s "apps")
+        [ Url.map Apps (Url.s "apps")
         , Url.map Home (Url.s "")
         ]
 
