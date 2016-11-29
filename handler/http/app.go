@@ -3,6 +3,7 @@ package http
 import (
 	"encoding/json"
 	"net/http"
+	"strconv"
 
 	"golang.org/x/net/context"
 
@@ -59,12 +60,14 @@ func (p *payloadApp) MarshalJSON() ([]byte, error) {
 		BackendToken string `json:"backend_token"`
 		Description  string `json:"description"`
 		Enabled      bool   `json:"enabled"`
+		ID           string `json:"id"`
 		Name         string `json:"name"`
 		Token        string `json:"token"`
 	}{
 		BackendToken: p.app.BackendToken,
 		Description:  p.app.Description,
 		Enabled:      p.app.Enabled,
+		ID:           strconv.FormatUint(p.app.ID, 10),
 		Name:         p.app.Name,
 		Token:        p.app.Token,
 	})

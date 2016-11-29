@@ -6,6 +6,7 @@ import Html.Events exposing (onClick, onInput, onSubmit)
 import Http
 import Json.Decode as Decode
 import Json.Encode as Encode
+import Route
 
 -- MODEL
 
@@ -13,6 +14,7 @@ type alias App =
     { backend_token : String
     , description : String
     , enabled : Bool
+    , id : String
     , name : String
     , token : String
     }
@@ -97,6 +99,7 @@ viewItem app =
     in
         tr []
             [ td [ class "status" ] [ enabled ]
+            , td [] [ text app.id ]
             , td [] [ text app.name ]
             , td [] [ text app.description ]
             , td [] [ text app.token ]
@@ -111,6 +114,7 @@ viewList apps =
             [ thead []
                 [ tr []
                     [ th [ class "status" ] [ text "status" ]
+                    , th [] [ text "id" ]
                     , th [] [ text "name" ]
                     , th [] [ text "description" ]
                     , th [] [ text "token" ]
@@ -128,10 +132,11 @@ create name description =
 
 decode : Decode.Decoder App
 decode =
-    Decode.map5 App
+    Decode.map6 App
         (Decode.field "backend_token" Decode.string)
         (Decode.field "description" Decode.string)
         (Decode.field "enabled" Decode.bool)
+        (Decode.field "id" Decode.string)
         (Decode.field "name" Decode.string)
         (Decode.field "token" Decode.string)
 
