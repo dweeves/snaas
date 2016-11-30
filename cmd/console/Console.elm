@@ -84,23 +84,39 @@ view model =
     let
         content = case model.route.current of
             Nothing ->
-                h3 [] [ text "Looks like we couldn't find the page you were looking for." ]
+                [ viewNotFound ]
             Just (Route.App id) ->
-                h3 [] [ text ("App single view for " ++ id) ]
+                [ viewContext model
+                , viewContainer (section [])
+                    [ Html.map AppMsg (App.viewApp model.appModel id)
+                    ]
+                ]
             Just Route.Apps ->
-                Html.map AppMsg (App.view model.appModel)
-            Just Route.Home ->
-                h3 [] [ text "You are home now." ]
+                [ viewContext model
+                , viewContainer (section [ class "highlight" ])
+                    [ Html.map AppMsg (App.view model.appModel)
+                    ]
+                ]
+            Just Route.Dashboard ->
+                [ viewDashboard ]
+            Just Route.Members ->
+                [ viewNotFound ]
     in
         div [ class "content" ]
-            [ viewContainer (header [])
-                [ viewHeader
-                , nav [] [ span [] [ text model.zone ] ]
-                ]
-            , viewContext model
-            , viewContainer (section [ class "highlight" ]) [ content ]
-            , viewContainer (footer []) [ viewDebug model ]
+            (List.concat
+                [ [ viewHeader model ]
+                , content
+                , [ viewFooter model ]
+                ])
+
+viewAppSelected : App.App -> Html Msg
+viewAppSelected app =
+    nav []
+        [ a [ onClick (Navigate (Route.App app.id)), title app.name ]
+            [ span [] [ text app.name ]
+            , span [ class "icon nc-icon-outline arrows-2_skew-down" ] []
             ]
+        ]
 
 viewContext : Model -> Html Msg
 viewContext model =
@@ -123,19 +139,28 @@ viewContext model =
             , info
             ]
 
-viewAppSelected : App.App -> Html Msg
-viewAppSelected app =
-    nav []
-        [ a [ onClick (Navigate (Route.App app.id)), title app.name ]
-            [ span [] [ text app.name ]
-            ]
-        ]
-
 viewContainer : Tag -> List (Html Msg) -> Html Msg
 viewContainer elem content =
     elem
         [ div [ class "container" ]
             content
+        ]
+
+viewDashboard : Html Msg
+viewDashboard =
+    viewContainer (section [])
+        [ h2 []
+            [ text "Hej, start of by looking into"
+            , a [ onClick (Navigate Route.Apps), title "Apps" ]
+                [ span [ class "icon nc-icon-glyph ui-2_layers" ] []
+                , text "Apps"
+                ]
+            , text "or"
+            , a [ onClick (Navigate Route.Members), title "Members" ]
+                [ span [ class "icon nc-icon-glyph users_multiple-11" ] []
+                , text "Members"
+                ]
+            ]
         ]
 
 viewDebug : Model -> Html Msg
@@ -144,11 +169,24 @@ viewDebug model =
       [ text (toString model)
       ]
 
-viewHeader : Html Msg
-viewHeader =
-    h1 []
-        [ a [ onClick (Navigate Route.Home), title "Home" ]
-            [ strong [] [ text "SocialPath" ]
-            , span [] [ text "Console" ]
+viewFooter : Model -> Html Msg
+viewFooter model=
+    viewContainer (footer []) [ viewDebug model ]
+
+viewHeader : Model -> Html Msg
+viewHeader model =
+    viewContainer (header [])
+        [ h1 []
+            [ a [ onClick (Navigate Route.Dashboard), title "Home" ]
+                [ strong [] [ text "SocialPath" ]
+                , span [] [ text "Console" ]
+                ]
             ]
+        , nav [] [ span [] [ text model.zone ] ]
+        ]
+
+viewNotFound : Html Msg
+viewNotFound =
+    viewContainer (section [ class "highlight" ])
+        [ h3 [] [ text "Looks like we couldn't find the page you were looking for." ]
         ]

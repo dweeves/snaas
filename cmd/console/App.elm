@@ -50,7 +50,7 @@ update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
     case msg of
         AppList (Ok apps) ->
-            ({ model | apps = apps }, Cmd.none)
+            ({ model | apps = apps, selected = Nothing }, Cmd.none)
         AppList (Err _) ->
             (model, Cmd.none)
         Description description ->
@@ -75,6 +75,10 @@ view model =
         [ viewList model.apps
         , viewForm model
         ]
+
+viewApp : Model -> String -> Html Msg
+viewApp model id =
+    h3 [] [ text ("App single view for " ++ id) ]
 
 viewForm : Model -> Html Msg
 viewForm model =

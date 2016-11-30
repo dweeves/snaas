@@ -12,7 +12,8 @@ type alias Model =
 type Route
     = App String
     | Apps
-    | Home
+    | Dashboard
+    | Members
 
 init : Location -> (Model, Cmd Msg)
 init location =
@@ -38,8 +39,10 @@ construct route =
             "/apps/" ++ id
         Apps ->
             "/apps"
-        Home ->
+        Dashboard ->
             "/"
+        Members ->
+            "/members"
 
 navigate : Route -> Cmd Msg
 navigate route =
@@ -52,7 +55,8 @@ parse location =
 routes : Parser (Route -> a) a
 routes =
     oneOf
-        [ map Home top
+        [ map Dashboard top
         , map App (s "apps" </> string)
         , map Apps (s "apps")
+        , map Members (s "members")
         ]
