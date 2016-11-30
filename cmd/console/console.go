@@ -49,6 +49,7 @@ var (
     <link href="https://fonts.googleapis.com/css?family=Fira+Sans:300,300i,400,500,700" rel="stylesheet">
     <link href="/styles/normalize.css" rel="stylesheet">
     <link href="/styles/nucleo-glyph.css" rel="stylesheet">
+    <link href="/styles/nucleo-outline.css" rel="stylesheet">
     <link href="/styles/console.css" rel="stylesheet">
     <script src="/scripts/console.js" type="text/javascript"></script>
   </head>
