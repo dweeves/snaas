@@ -81,7 +81,7 @@ h2 {
 	padding: 0rem 0rem 1.4rem 0rem;
 }
 
-h2 a {
+section#dashboard h2 a {
 	margin: 0 2rem;
 }
 
@@ -147,6 +147,10 @@ section#context nav {
 
 section#context nav span.icon {
 	margin-left: 1rem;
+}
+
+section#dashboard {
+	margin: 5rem 0;
 }
 
 section.highlight {

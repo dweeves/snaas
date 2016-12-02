@@ -8,6 +8,7 @@ import Json.Decode as Decode
 import Json.Encode as Encode
 import Navigation
 
+import Container
 import Route
 
 -- MODEL
@@ -21,6 +22,11 @@ type alias App =
     , token : String
     }
 
+type alias Context =
+    { model : Model
+    , route : Maybe Route.Route
+    }
+
 type alias Model =
     { apps : List App
     , description : String
@@ -28,9 +34,19 @@ type alias Model =
     , selected : (Maybe App)
     }
 
-init : (Model, Cmd Msg)
-init =
-    (initModel, getList)
+init : Maybe Route.Route -> (Model, Cmd Msg)
+init route =
+    case route of
+        Just (Route.App id) ->
+            (initModel, getApp id)
+        Just Route.Apps ->
+            (initModel, getApps)
+        _ ->
+            (initModel, Cmd.none)
+
+initApp : App
+initApp =
+    App "" "" False "" "" ""
 
 initModel : Model
 initModel =
@@ -39,7 +55,8 @@ initModel =
 -- UPDATE
 
 type Msg
-    = AppList (Result Http.Error (List App))
+    = FetchApp (Result Http.Error App)
+    | FetchApps (Result Http.Error (List App))
     | Description String
     | Name String
     | New (Result Http.Error App)
@@ -49,9 +66,13 @@ type Msg
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
     case msg of
-        AppList (Ok apps) ->
+        FetchApp (Ok app) ->
+            ({ model | selected = (Just app) }, Cmd.none)
+        FetchApp (Err _) ->
+            (model, Cmd.none)
+        FetchApps (Ok apps) ->
             ({ model | apps = apps, selected = Nothing }, Cmd.none)
-        AppList (Err _) ->
+        FetchApps (Err _) ->
             (model, Cmd.none)
         Description description ->
             ({ model | description = description }, Cmd.none)
@@ -69,16 +90,27 @@ update msg model =
 
 -- VIEW
 
-view : Model -> Html Msg
-view model =
-    div []
-        [ viewList model.apps
-        , viewForm model
-        ]
+view : Context -> Html Msg
+view {model, route} =
+    case route of
+        Just (Route.Apps) ->
+            Container.view (section [ class "highlight" ])
+                [ viewList model.apps
+                , viewForm model
+                ]
+        Just (Route.App _) ->
+            Container.view (section [])
+                [ viewApp model
+                ]
+        _ ->
+           div [] []
 
-viewApp : Model -> String -> Html Msg
-viewApp model id =
-    h3 [] [ text ("App single view for " ++ id) ]
+viewApp : Model -> Html Msg
+viewApp {selected} =
+    let
+        app = Maybe.withDefault (initApp) selected
+    in
+        h3 [] [ text ("App single view for " ++ app.name) ]
 
 viewForm : Model -> Html Msg
 viewForm model =
@@ -156,9 +188,13 @@ encode : String -> String -> Http.Body
 encode name description =
     Http.jsonBody (Encode.object [ ("name", Encode.string name), ("description", Encode.string description) ] )
 
-getList : Cmd Msg
-getList =
-    Http.send AppList (Http.get "/api/apps" decodeList)
+getApp : String -> Cmd Msg
+getApp id =
+    Http.send FetchApp (Http.get ("/api/apps/" ++ id) decode)
+
+getApps : Cmd Msg
+getApps =
+    Http.send FetchApps (Http.get "/api/apps" decodeList)
 
 selectApp : String -> List App -> Maybe App
 selectApp id apps =

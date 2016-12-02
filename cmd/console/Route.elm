@@ -6,7 +6,7 @@ import UrlParser exposing (Parser, (</>), map, oneOf, parsePath, top, s, string)
 -- MODEL
 
 type alias Model =
-    { current : (Maybe Route)
+    { current : Maybe Route
     }
 
 type Route
@@ -48,7 +48,7 @@ navigate : Route -> Cmd Msg
 navigate route =
     newUrl (construct route)
 
-parse : Location -> (Maybe Route)
+parse : Location -> Maybe Route
 parse location =
     parsePath routes location
 

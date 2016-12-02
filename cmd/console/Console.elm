@@ -6,6 +6,7 @@ import Html.Events exposing (onClick, onInput, onSubmit)
 import Navigation
 
 import App
+import Container
 import Route
 
 main : Program Flags Model Msg
@@ -30,16 +31,16 @@ type alias Model =
     , zone : String
     }
 
-type alias Tag = List (Html Msg) -> Html Msg
-
 init : Flags -> Navigation.Location -> (Model, Cmd Msg)
 init {zone} location =
     let
-        (routeModel, _) = Route.init location
-
-        (appModel, appCmd) = App.init
+        (routeModel, routeCmd) = Route.init location
+        (appModel, appCmd) = App.init routeModel.current
     in
-        (Model appModel routeModel zone, Cmd.map AppMsg appCmd)
+        (Model appModel routeModel zone) !
+            [ Cmd.map RouteMsg routeCmd
+            , Cmd.map AppMsg appCmd
+            ]
 
 -- UPDATE
 
@@ -82,20 +83,16 @@ subscriptions model =
 view : Model -> Html Msg
 view model =
     let
-        content = case model.route.current of
+        page = case model.route.current of
             Nothing ->
                 [ viewNotFound ]
             Just (Route.App id) ->
-                [ viewContext model
-                , viewContainer (section [])
-                    [ Html.map AppMsg (App.viewApp model.appModel id)
-                    ]
+                [ viewAppContext model.appModel
+                , viewApp model
                 ]
             Just Route.Apps ->
-                [ viewContext model
-                , viewContainer (section [ class "highlight" ])
-                    [ Html.map AppMsg (App.view model.appModel)
-                    ]
+                [ viewAppContext model.appModel
+                , viewApp model
                 ]
             Just Route.Dashboard ->
                 [ viewDashboard ]
@@ -103,11 +100,35 @@ view model =
                 [ viewNotFound ]
     in
         div [ class "content" ]
-            (List.concat
-                [ [ viewHeader model ]
-                , content
-                , [ viewFooter model ]
-                ])
+            [ viewHeader model
+            , div [] page
+            , viewFooter model
+            ]
+
+viewApp : Model -> Html Msg
+viewApp {appModel, route} =
+    Html.map AppMsg (App.view (App.Context appModel route.current))
+
+viewAppContext : App.Model -> Html Msg
+viewAppContext model =
+    let
+        (sectionClass, info) =
+            case model.selected of
+                Nothing ->
+                    ("", span [] [])
+                Just app ->
+                    ("selected", viewAppSelected app)
+
+    in
+        Container.view (section [ class sectionClass, id "context" ])
+            [ h2 []
+                [ a [ onClick (Navigate Route.Apps), title "Apps" ]
+                    [ span [ class "icon nc-icon-glyph ui-2_layers" ] []
+                    , span [] [ text "Apps" ]
+                    ]
+                ]
+            , info
+            ]
 
 viewAppSelected : App.App -> Html Msg
 viewAppSelected app =
@@ -118,37 +139,9 @@ viewAppSelected app =
             ]
         ]
 
-viewContext : Model -> Html Msg
-viewContext model =
-    let
-        (sectionClass, info) =
-            case model.appModel.selected of
-                Nothing ->
-                    ("", span [] [])
-                Just app ->
-                    ("selected", viewAppSelected app)
-
-    in
-        viewContainer (section [ class sectionClass, id "context" ])
-            [ h2 []
-                [ a [ onClick (Navigate Route.Apps), title "Apps" ]
-                    [ span [ class "icon nc-icon-glyph ui-2_layers" ] []
-                    , span [] [ text "Apps" ]
-                    ]
-                ]
-            , info
-            ]
-
-viewContainer : Tag -> List (Html Msg) -> Html Msg
-viewContainer elem content =
-    elem
-        [ div [ class "container" ]
-            content
-        ]
-
 viewDashboard : Html Msg
 viewDashboard =
-    viewContainer (section [])
+    Container.view (section [ id "dashboard" ])
         [ h2 []
             [ text "Hej, start of by looking into"
             , a [ onClick (Navigate Route.Apps), title "Apps" ]
@@ -171,11 +164,11 @@ viewDebug model =
 
 viewFooter : Model -> Html Msg
 viewFooter model=
-    viewContainer (footer []) [ viewDebug model ]
+    Container.view (footer []) [ viewDebug model ]
 
 viewHeader : Model -> Html Msg
 viewHeader model =
-    viewContainer (header [])
+    Container.view (header [])
         [ h1 []
             [ a [ onClick (Navigate Route.Dashboard), title "Home" ]
                 [ strong [] [ text "SocialPath" ]
@@ -187,6 +180,6 @@ viewHeader model =
 
 viewNotFound : Html Msg
 viewNotFound =
-    viewContainer (section [ class "highlight" ])
+    Container.view (section [ class "highlight" ])
         [ h3 [] [ text "Looks like we couldn't find the page you were looking for." ]
         ]
