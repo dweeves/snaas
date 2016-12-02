@@ -155,7 +155,14 @@ func main() {
 	// Setup Router.
 	router := mux.NewRouter()
 
-	router.Methods("GET").Path("/api/apps").Name("appsGet").HandlerFunc(
+	router.Methods("GET").Path("/api/apps/{appID:[0-9]+}").Name("appRetrieve").HandlerFunc(
+		handler.Wrap(
+			withConstraints,
+			handler.AppRetrieve(core.AppFetch(apps)),
+		),
+	)
+
+	router.Methods("GET").Path("/api/apps").Name("appList").HandlerFunc(
 		handler.Wrap(
 			withConstraints,
 			handler.AppList(core.AppList(apps)),

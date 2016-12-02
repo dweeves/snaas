@@ -49,6 +49,25 @@ func AppList(fn core.AppListFunc) Handler {
 	}
 }
 
+// AppRetrieve returns the app for the requested id.
+func AppRetrieve(fn core.AppFetchFunc) Handler {
+	return func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
+		id, err := extractAppID(r)
+		if err != nil {
+			respondError(w, 0, wrapError(ErrBadRequest, err.Error()))
+			return
+		}
+
+		a, err := fn(id)
+		if err != nil {
+			respondError(w, 0, err)
+			return
+		}
+
+		respondJSON(w, http.StatusOK, &payloadApp{app: a})
+	}
+}
+
 type payloadApp struct {
 	app         *app.App
 	Description string `json:"description"`
